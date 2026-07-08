@@ -1,0 +1,62 @@
+<?php
+
+namespace App\Controllers;
+
+class Geocode extends BaseController
+{
+    public function search()
+    {
+        $alamat = $this->request->getGet('q');
+        if (!$alamat) {
+            return $this->response->setJSON(['error' => 'Alamat diperlukan']);
+        }
+
+        $url = 'https://nominatim.openstreetmap.org/search?' . http_build_query([
+            'q'      => $alamat . ', Semarang, Indonesia',
+            'format' => 'json',
+            'limit'  => 5,
+        ]);
+
+        $client = \Config\Services::curlrequest();
+        $response = $client->get($url, [
+            'headers' => [
+                'User-Agent' => 'SukaJajan/1.0 (contact@sukajajan.com)',
+            ],
+        ]);
+
+        $results = json_decode($response->getBody(), true);
+        $data = [];
+        foreach ($results as $r) {
+            $data[] = [
+                'display_name' => $r['display_name'],
+                'lat'          => $r['lat'],
+                'lon'          => $r['lon'],
+            ];
+        }
+
+        return $this->response->setJSON($data);
+    }
+    public function reverse()
+    {
+        $lat = $this->request->getGet('lat');
+        $lon = $this->request->getGet('lon');
+        if (!$lat || !$lon) {
+            return $this->response->setJSON(['error' => 'Latitude dan Longitude diperlukan']);
+        }
+
+        $url = 'https://nominatim.openstreetmap.org/reverse?' . http_build_query([
+            'lat'    => $lat,
+            'lon'    => $lon,
+            'format' => 'json',
+        ]);
+
+        $client = \Config\Services::curlrequest();
+        $response = $client->get($url, [
+            'headers' => [
+                'User-Agent' => 'SukaJajan/1.0 (contact@sukajajan.com)',
+            ],
+        ]);
+
+        return $this->response->setBody($response->getBody())->setContentType('application/json');
+    }
+}
